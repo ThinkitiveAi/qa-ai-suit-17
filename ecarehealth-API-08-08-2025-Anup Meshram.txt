@@ -1,5 +1,6 @@
-// ecarehealth-token-test.js
-// Combined eCareHealth API Test Suite using provided token (no login step)
+// ecarehealth-complete-test.js
+// Complete eCareHealth API Test Suite with integrated reporter
+// Run with: npx playwright test ecarehealth-complete-test.js
 
 const { test, expect } = require('@playwright/test');
 const crypto = require('crypto');
@@ -10,23 +11,29 @@ const path = require('path');
 const BASE_URL = 'https://stage-api.ecarehealth.com';
 const TENANT_ID = 'stage_aithinkitive';
 
-// Provided JWT token
-let authToken = `eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJldEJ0MVpKbDlOQ1pEX0VMWUM2dDlISzItQkQybU5wOHZHX3lhczFXN1pZIn0.eyJleHAiOjE3NTQ2ODA2MjQsImlhdCI6MTc1NDY0NDYyNCwianRpIjoiNDQzMjA3YmQtZWM4NC00ODgyLWJmZjYtZDM0MGZlNzEwZDJiIiwiaXNzIjoiaHR0cHM6Ly9kZXYtaWFtLmVjYXJlaGVhbHRoLmNvbS9yZWFsbXMvc3RhZ2VfYWl0aGlua2l0aXZlIiwiYXVkIjoiYWNjb3VudCIsInN1YiI6IjYxMjFjZjk2LWFkM2EtNDIxMC04N2ViLWFkNDNlZjcxYmY4ZSIsInR5cCI6IkJlYXJlciIsImF6cCI6ImpzLWNsaWVudCIsInNpZCI6Ijg4NWE4ZTZiLTNmZDItNGNlMy05YzU3LWE0YmIwMWI2MDg2MiIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJQUk9WSURFUiIsInVtYV9hdXRob3JpemF0aW9uIiwiZGVmYXVsdC1yb2xlcy1zdGFnZV9haXRoaW5raXRpdmUiXX0sInJlc291cmNlX2FjY2VzcyI6eyJhY2NvdW50Ijp7InJvbGVzIjpbIm1hbmFnZS1hY2NvdW50IiwibWFuYWdlLWFjY291bnQtbGlua3MiLCJ2aWV3LXByb2ZpbGUiXX19LCJzY29wZSI6Im9wZW5pZCBwcm9maWxlIGVtYWlsIiwiZW1haWxfdmVyaWZpZWQiOmZhbHNlLCJuYW1lIjoiUm9zZSBHb21leiIsInByZWZlcnJlZF91c2VybmFtZSI6InJvc2UuZ29tZXpAam91cnJhcGlkZS5jb20iLCJnaXZlbl9uYW1lIjoiUm9zZSIsImZhbWlseV9uYW1lIjoiR29tZXoiLCJlbWFpbCI6InJvc2UuZ29tZXpAam91cnJhcGlkZS5jb20ifQ.IoBwNrfCYUCTsqEUgsluXNb9q2c5fHsjD4GeS8JuplnbQ3YlsFUc4kolvtWNr0ckoCr_-FUcy05euMaM65NeMblXl4h4WZ3cT2HBypgUi_9owrWxwaEMWjeyjTDxUI7z4zF1L-9uKucqsbIsGUBcBhM7gKkc0PQ5HpBsH3Vpn8FaWF9lhmas70cLgpRkDQgIvTMxF9AIa9GoLSbmwKp6aotF5MieiDpDi_yL29DvFYWMSvzUL6yGtxaV0FO1cuNSFXl7ABEmBYXQbOUVc6wo2oegH4Nizar5s3eedPJcLXy7O0AkVTW6FuDIB4v22TIlpEzHMRBpo2uZhCaLWVOP0Q`;
+// Pre-configured authentication token
+const AUTH_TOKEN = 'eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJldEJ0MVpKbDlOQ1pEX0VMWUM2dDlISzItQkQybU5wOHZHX3lhczFXN1pZIn0.eyJleHAiOjE3NTQ2ODA2MjQsImlhdCI6MTc1NDY0NDYyNCwianRpIjoiNDQzMjA3YmQtZWM4NC00ODgyLWJmZjYtZDM0MGZlNzEwZDJiIiwiaXNzIjoiaHR0cHM6Ly9kZXYtaWFtLmVjYXJlaGVhbHRoLmNvbS9yZWFsbXMvc3RhZ2VfYWl0aGlua2l0aXZlIiwiYXVkIjoiYWNjb3VudCIsInN1YiI6IjYxMjFjZjk2LWFkM2EtNDIxMC04N2ViLWFkNDNlZjcxYmY4ZSIsInR5cCI6IkJlYXJlciIsImF6cCI6ImpzLWNsaWVudCIsInNpZCI6Ijg4NWE4ZTZiLTNmZDItNGNlMy05YzU3LWE0YmIwMWI2MDg2MiIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJQUk9WSURFUiIsInVtYV9hdXRob3JpemF0aW9uIiwiZGVmYXVsdC1yb2xlcy1zdGFnZV9haXRoaW5raXRpdmUiXX0sInJlc291cmNlX2FjY2VzcyI6eyJhY2NvdW50Ijp7InJvbGVzIjpbIm1hbmFnZS1hY2NvdW50IiwibWFuYWdlLWFjY291bnQtbGlua3MiLCJ2aWV3LXByb2ZpbGUiXX19LCJzY29wZSI6Im9wZW5pZCBwcm9maWxlIGVtYWlsIiwiZW1haWxfdmVyaWZpZWQiOmZhbHNlLCJuYW1lIjoiUm9zZSBHb21leiIsInByZWZlcnJlZF91c2VybmFtZSI6InJvc2UuZ29tZXpAam91cnJhcGlkZS5jb20iLCJnaXZlbl9uYW1lIjoiUm9zZSIsImZhbWlseV9uYW1lIjoiR29tZXoiLCJlbWFpbCI6InJvc2UuZ29tZXpAam91cnJhcGlkZS5jb20ifQ.IoBwNrfCYUCTsqEUgsluXNb9q2c5fHsjD4GeS8JuplnbQ3YlsFUc4kolvtWNr0ckoCr_-FUcy05euMaM65NeMblXl4h4WZ3cT2HBypgUi_9owrWxwaEMWjeyjTDxUI7z4zF1L-9uKucqsbIsGUBcBhM7gKkc0PQ5HpBsH3Vpn8FaWF9lhmas70cLgpRkDQgIvTMxF9AIa9GoLSbmwKp6aotF5MieiDpDi_yL29DvFYWMSvzUL6yGtxaV0FO1cuNSFXl7ABEmBYXQbOUVc6wo2oegH4Nizar5s3eedPJcLXy7O0AkVTW6FuDIB4v22TIlpEzHMRBpo2uZhCaLWVOP0Q';
 
+// Test data storage
 let providerId = 'dc769997-f9ce-4153-a6f9-bd491ac35228';
 let patientId = 'ac59331f-b6ff-4787-8eeb-a52ff0257861';
 let appointmentId;
 let encounterSummaryId;
 
-// ===== Test results storage =====
+// Test results storage
 const testResults = {
-  testSuite: 'eCareHealth API Test Suite (Token Auth)',
+  testSuite: 'eCareHealth API Test Suite',
   startTime: new Date().toISOString(),
   tests: [],
-  summary: { total: 0, passed: 0, failed: 0, skipped: 0 }
+  summary: {
+    total: 0,
+    passed: 0,
+    failed: 0,
+    skipped: 0
+  }
 };
 
-// ===== Helper functions =====
+// ===== HELPER FUNCTIONS =====
 function generateRandomData() {
   const randomId = crypto.randomBytes(4).toString('hex');
   return {
@@ -36,94 +43,760 @@ function generateRandomData() {
     note: `Test Note ${randomId}`
   };
 }
+
 function getFutureDate(daysAhead = 3) {
   const date = new Date();
   date.setDate(date.getDate() + daysAhead);
   return date.toISOString();
 }
+
 function logTestResult(testName, status, duration, error = null) {
-  const result = { title: testName, status, duration, error, timestamp: new Date().toISOString() };
+  const result = {
+    title: testName,
+    status: status,
+    duration: duration,
+    error: error,
+    timestamp: new Date().toISOString()
+  };
+  
   testResults.tests.push(result);
   testResults.summary.total++;
   testResults.summary[status]++;
+  
+  // Console output
   const statusSymbol = status === 'passed' ? '✓' : status === 'failed' ? '✗' : '⚠';
   console.log(`${statusSymbol} ${testName} - ${status.toUpperCase()} (${duration}ms)`);
-  if (error) console.error(`  Error: ${error}`);
+  if (error) {
+    console.error(`  Error: ${error}`);
+  }
 }
+
 function generateHTMLReport() {
-  const passRate = testResults.summary.total > 0
+  const passRate = testResults.summary.total > 0 
     ? ((testResults.summary.passed / testResults.summary.total) * 100).toFixed(2)
     : 0;
-  return `<!DOCTYPE html><html><head><title>eCareHealth API Test Report</title>
-  <style>body{font-family:Arial;margin:20px;background:#f5f5f5}.container{max-width:1200px;margin:0 auto;background:white;padding:20px;border-radius:8px;box-shadow:0 2px 4px rgba(0,0,0,0.1)}</style>
-  </head><body><div class="container"><h1>eCareHealth API Test Execution Report</h1>
-  <p><b>Environment:</b> ${BASE_URL}</p><p><b>Tenant ID:</b> ${TENANT_ID}</p>
-  <p><b>Start:</b> ${new Date(testResults.startTime).toLocaleString()}</p>
-  <p><b>End:</b> ${new Date().toLocaleString()}</p>
-  <h2>Summary</h2>
-  <p>Total: ${testResults.summary.total} | Passed: ${testResults.summary.passed} | Failed: ${testResults.summary.failed} | Skipped: ${testResults.summary.skipped} | Pass Rate: ${passRate}%</p>
-  <h2>Details</h2>
-  ${testResults.tests.map((t, i) => `<div><b>${i + 1}. ${t.title}</b> - ${t.status.toUpperCase()} (${t.duration}ms) ${t.error ? `<br>Error: ${t.error}` : ''}</div>`).join('')}
-  </div></body></html>`;
+
+  return `
+<!DOCTYPE html>
+<html>
+<head>
+    <title>eCareHealth API Test Report</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            border-bottom: 2px solid #4CAF50;
+            padding-bottom: 10px;
+        }
+        .summary {
+            display: flex;
+            justify-content: space-around;
+            margin: 20px 0;
+            padding: 20px;
+            background-color: #f9f9f9;
+            border-radius: 5px;
+        }
+        .summary-item {
+            text-align: center;
+        }
+        .summary-value {
+            font-size: 36px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        .passed { color: #4CAF50; }
+        .failed { color: #f44336; }
+        .skipped { color: #ff9800; }
+        .test-results {
+            margin-top: 30px;
+        }
+        .test-item {
+            margin: 10px 0;
+            padding: 15px;
+            border-left: 4px solid #ddd;
+            background-color: #fafafa;
+        }
+        .test-item.passed { border-left-color: #4CAF50; }
+        .test-item.failed { border-left-color: #f44336; }
+        .test-item.skipped { border-left-color: #ff9800; }
+        .test-title {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .test-details {
+            color: #666;
+            font-size: 14px;
+        }
+        .error {
+            color: #f44336;
+            margin-top: 5px;
+        }
+        .execution-details {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f0f0f0;
+            border-radius: 5px;
+        }
+        .footer {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #ddd;
+            text-align: center;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>eCareHealth API Test Execution Report</h1>
+        
+        <div class="execution-details">
+            <h3>Execution Details</h3>
+            <p><strong>Environment:</strong> ${BASE_URL}</p>
+            <p><strong>Tenant ID:</strong> ${TENANT_ID}</p>
+            <p><strong>Start Time:</strong> ${new Date(testResults.startTime).toLocaleString()}</p>
+            <p><strong>End Time:</strong> ${new Date().toLocaleString()}</p>
+            <p><strong>Authentication:</strong> Using pre-configured token</p>
+        </div>
+
+        <div class="summary">
+            <div class="summary-item">
+                <div>Total Tests</div>
+                <div class="summary-value">${testResults.summary.total}</div>
+            </div>
+            <div class="summary-item">
+                <div>Passed</div>
+                <div class="summary-value passed">${testResults.summary.passed}</div>
+            </div>
+            <div class="summary-item">
+                <div>Failed</div>
+                <div class="summary-value failed">${testResults.summary.failed}</div>
+            </div>
+            <div class="summary-item">
+                <div>Skipped</div>
+                <div class="summary-value skipped">${testResults.summary.skipped}</div>
+            </div>
+            <div class="summary-item">
+                <div>Pass Rate</div>
+                <div class="summary-value">${passRate}%</div>
+            </div>
+        </div>
+
+        <div class="test-results">
+            <h2>Test Results</h2>
+            ${testResults.tests.map((test, index) => `
+                <div class="test-item ${test.status}">
+                    <div class="test-title">${index + 1}. ${test.title}</div>
+                    <div class="test-details">
+                        Status: ${test.status.toUpperCase()} | 
+                        Duration: ${test.duration}ms |
+                        Time: ${new Date(test.timestamp).toLocaleTimeString()}
+                    </div>
+                    ${test.error ? `<div class="error">Error: ${test.error}</div>` : ''}
+                </div>
+            `).join('')}
+        </div>
+
+        <div class="footer">
+            <p>Report generated on ${new Date().toLocaleString()}</p>
+            <p>Test Framework: Playwright Test</p>
+        </div>
+    </div>
+</body>
+</html>
+  `;
 }
+
 function saveReports() {
-  const dir = 'test-results';
-  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-  fs.writeFileSync(path.join(dir, 'ecarehealth-test-report.html'), generateHTMLReport());
-  fs.writeFileSync(path.join(dir, 'ecarehealth-test-results.json'), JSON.stringify(testResults, null, 2));
-  console.log(`\n📊 Reports saved to ${dir}`);
+  const reportDir = 'test-results';
+  if (!fs.existsSync(reportDir)) {
+    fs.mkdirSync(reportDir, { recursive: true });
+  }
+
+  // Save HTML report
+  const htmlReport = generateHTMLReport();
+  const htmlPath = path.join(reportDir, 'ecarehealth-test-report.html');
+  fs.writeFileSync(htmlPath, htmlReport);
+  
+  // Save JSON report
+  const jsonPath = path.join(reportDir, 'ecarehealth-test-results.json');
+  fs.writeFileSync(jsonPath, JSON.stringify(testResults, null, 2));
+  
+  console.log(`\n📊 Reports saved:`);
+  console.log(`   HTML: ${htmlPath}`);
+  console.log(`   JSON: ${jsonPath}`);
 }
 
 // ===== MAIN TEST SUITE =====
-test.describe('eCareHealth API Test Suite (Token Auth)', () => {
+test.describe('eCareHealth API Test Suite', () => {
   let request;
   let testData;
 
   test.beforeAll(async ({ playwright }) => {
     console.log('\n' + '='.repeat(60));
-    console.log('Starting eCareHealth API Test Suite (Token Auth)');
+    console.log('eCareHealth API Test Execution');
+    console.log('Start Time:', new Date().toLocaleString());
+    console.log('Environment:', BASE_URL);
+    console.log('Using pre-configured authentication token');
     console.log('='.repeat(60) + '\n');
+
+    // Create request context with pre-configured token
     request = await playwright.request.newContext({
       baseURL: BASE_URL,
       extraHTTPHeaders: {
         'X-TENANT-ID': TENANT_ID,
         'Accept': 'application/json, text/plain, */*',
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${authToken}`
+        'Authorization': `Bearer ${AUTH_TOKEN}`
       }
     });
+    
+    // Generate test data for this test run
     testData = generateRandomData();
   });
 
   test.afterAll(async () => {
     await request.dispose();
+    
+    // Generate final report
+    console.log('\n' + '='.repeat(60));
+    console.log('TEST EXECUTION SUMMARY');
+    console.log('='.repeat(60));
+    console.log(`Total Tests: ${testResults.summary.total}`);
+    console.log(`Passed: ${testResults.summary.passed} ✓`);
+    console.log(`Failed: ${testResults.summary.failed} ✗`);
+    console.log(`Skipped: ${testResults.summary.skipped} ⚠`);
+    
+    const passRate = testResults.summary.total > 0 
+      ? ((testResults.summary.passed / testResults.summary.total) * 100).toFixed(2)
+      : 0;
+    console.log(`Pass Rate: ${passRate}%`);
+    console.log('='.repeat(60));
+    
+    // Save reports
     saveReports();
   });
 
-  // START TESTS (Skip login)
-  test('1. Set Availability API', async () => {
+  // Skip the login test since we're using pre-configured token
+  test.skip('1. Provider Login API - SKIPPED', async () => {
+    console.log('\n⚠ Skipping Provider Login API - Using pre-configured token');
+    logTestResult('Provider Login API', 'skipped', 0, 'Using pre-configured authentication token');
+  });
+
+  test('2. Set Availability API', async () => {
     const startTime = Date.now();
+    const testName = 'Set Availability API';
+    
     try {
-      const res = await request.post('/api/master/provider/availability-setting', {
+      console.log(`\n🔄 Testing ${testName}...`);
+      
+      const response = await request.post('/api/master/provider/availability-setting', {
         data: {
-          settings: [{ type: "NEW", slotTime: 15, minNoticeUnit: "string" }],
-          providerId, bookingWindow: "4", timezone: "IST", initialConsultTime: 15,
-          daySlots: [{ day: "MONDAY", startTime: "00:00:00", endTime: "23:45:00", availabilityMode: "VIRTUAL" }],
+          settings: [
+            {
+              type: "NEW",
+              slotTime: 15,
+              minNoticeUnit: "string"
+            },
+            {
+              type: "CARE_COORDINATION",
+              slotTime: 30,
+              minNoticeUnit: "string"
+            }
+          ],
+          providerId: providerId,
+          bookingWindow: "4",
+          timezone: "IST",
+          initialConsultTime: 15,
+          followupConsultTime: 0,
+          administrativeConsultTime: 0,
+          careCoordinationConsultTime: 30,
+          medicationBriefConsultTime: 0,
+          nursingOnlyConsultTime: 0,
+          telephoneCallConsultTime: 0,
+          urgentVisitConsultTime: 0,
+          videoVisitConsultTime: 0,
+          wellnessExamConsultTime: 0,
+          bufferTime: 0,
+          bookBefore: "undefined undefined",
+          blockDays: [],
+          daySlots: [
+            {
+              day: "MONDAY",
+              startTime: "00:00:00",
+              endTime: "23:45:00",
+              location: null,
+              availabilityMode: "VIRTUAL"
+            },
+            {
+              day: "TUESDAY",
+              startTime: "10:00:00",
+              endTime: "22:00:00",
+              location: null,
+              availabilityMode: "VIRTUAL"
+            },
+            {
+              day: "WEDNESDAY",
+              startTime: "00:00:00",
+              endTime: "00:30:00",
+              location: null,
+              availabilityMode: "VIRTUAL"
+            },
+            {
+              day: "THURSDAY",
+              startTime: "00:15:00",
+              endTime: "01:15:00",
+              location: null,
+              availabilityMode: "VIRTUAL"
+            },
+            {
+              day: "FRIDAY",
+              startTime: "10:00:00",
+              endTime: "22:00:00",
+              location: null,
+              availabilityMode: "VIRTUAL"
+            },
+            {
+              day: "SATURDAY",
+              startTime: "00:00:00",
+              endTime: "23:45:00",
+              location: null,
+              availabilityMode: "VIRTUAL"
+            },
+            {
+              day: "SUNDAY",
+              startTime: "00:00:00",
+              endTime: "23:45:00",
+              location: null,
+              availabilityMode: "VIRTUAL"
+            }
+          ],
+          startTime: null,
+          endTime: null,
+          setToWeekdays: false,
+          minNoticeTime: "undefined",
+          minNoticeUnit: "undefined",
+          xTENANTID: TENANT_ID
         }
       });
-      expect(res.status()).toBe(200);
-      logTestResult('Set Availability API', 'passed', Date.now() - startTime);
-    } catch (err) { logTestResult('Set Availability API', 'failed', Date.now() - startTime, err.message); }
+
+      expect(response.status()).toBe(200);
+      const responseBody = await response.json();
+      expect(responseBody).toHaveProperty('message');
+      expect(responseBody.message).toContain('Availability added successfully');
+      
+      logTestResult(testName, 'passed', Date.now() - startTime);
+    } catch (error) {
+      logTestResult(testName, 'failed', Date.now() - startTime, error.message);
+      throw error;
+    }
   });
 
-  test('2. Get Availability API', async () => {
+  test('3. Get Availability API', async () => {
     const startTime = Date.now();
+    const testName = 'Get Availability API';
+    
     try {
-      const res = await request.get(`/api/master/provider/${providerId}/availability-setting`);
-      expect(res.status()).toBe(200);
-      logTestResult('Get Availability API', 'passed', Date.now() - startTime);
-    } catch (err) { logTestResult('Get Availability API', 'failed', Date.now() - startTime, err.message); }
+      console.log(`\n🔄 Testing ${testName}...`);
+      
+      const response = await request.get(`/api/master/provider/${providerId}/availability-setting`);
+      expect(response.status()).toBe(200);
+      
+      const responseBody = await response.json();
+      expect(responseBody).toBeDefined();
+      
+      logTestResult(testName, 'passed', Date.now() - startTime);
+    } catch (error) {
+      logTestResult(testName, 'failed', Date.now() - startTime, error.message);
+      throw error;
+    }
   });
 
-  // ... you can paste the remaining tests here from your original script (Create Appointment, Confirm, Check In, etc.)
+  test('4. Create Appointment API', async () => {
+    const startTime = Date.now();
+    const testName = 'Create Appointment API';
+    
+    try {
+      console.log(`\n🔄 Testing ${testName}...`);
+      
+      const appointmentStartTime = getFutureDate(3);
+      const appointmentEndTime = new Date(new Date(appointmentStartTime).getTime() + 15 * 60000).toISOString();
+      
+      const response = await request.post('/api/master/appointment', {
+        data: {
+          mode: "VIRTUAL",
+          patientId: patientId,
+          customForms: null,
+          visit_type: "",
+          type: "NEW",
+          paymentType: "CASH",
+          providerId: providerId,
+          startTime: appointmentStartTime,
+          endTime: appointmentEndTime,
+          insurance_type: "",
+          note: testData.note,
+          authorization: "",
+          forms: [],
+          chiefComplaint: testData.chiefComplaint,
+          isRecurring: false,
+          recurringFrequency: "daily",
+          reminder_set: false,
+          endType: "never",
+          endDate: getFutureDate(7),
+          endAfter: 5,
+          customFrequency: 1,
+          customFrequencyUnit: "days",
+          selectedWeekdays: [],
+          reminder_before_number: 1,
+          timezone: "IST",
+          duration: 15,
+          xTENANTID: TENANT_ID
+        }
+      });
+
+      expect(response.status()).toBe(201);
+      const responseBody = await response.json();
+      expect(responseBody).toHaveProperty('message');
+      expect(responseBody.message).toBe('Patient Details Added Successfully.');
+      
+      if (responseBody.appointmentId) {
+        appointmentId = responseBody.appointmentId;
+      }
+      
+      logTestResult(testName, 'passed', Date.now() - startTime);
+    } catch (error) {
+      logTestResult(testName, 'failed', Date.now() - startTime, error.message);
+      throw error;
+    }
+  });
+
+  test('5. Get Provider Appointment API', async () => {
+    const startTime = Date.now();
+    const testName = 'Get Provider Appointment API';
+    
+    try {
+      console.log(`\n🔄 Testing ${testName}...`);
+      
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - 1);
+      const endDate = new Date();
+      endDate.setMonth(endDate.getMonth() + 1);
+      
+      const response = await request.get('/api/master/appointment', {
+        params: {
+          page: 0,
+          size: 25,
+          providerUuid: providerId,
+          startDate: startDate.toISOString(),
+          endDate: endDate.toISOString()
+        }
+      });
+
+      expect(response.status()).toBe(200);
+      const responseBody = await response.json();
+      expect(responseBody).toHaveProperty('content');
+      expect(Array.isArray(responseBody.content)).toBe(true);
+      
+      if (responseBody.content && responseBody.content.length > 0) {
+        appointmentId = responseBody.content[0].uuid || responseBody.content[0].id;
+        console.log(`   Extracted appointment ID: ${appointmentId}`);
+      }
+      
+      logTestResult(testName, 'passed', Date.now() - startTime);
+    } catch (error) {
+      logTestResult(testName, 'failed', Date.now() - startTime, error.message);
+      throw error;
+    }
+  });
+
+  test('6. Confirm Appointment API', async () => {
+    const startTime = Date.now();
+    const testName = 'Confirm Appointment API';
+    
+    if (!appointmentId) {
+      logTestResult(testName, 'skipped', Date.now() - startTime, 'No appointment ID available');
+      test.skip();
+      return;
+    }
+    
+    try {
+      console.log(`\n🔄 Testing ${testName}...`);
+      
+      const response = await request.put('/api/master/appointment/update-status', {
+        data: {
+          appointmentId: appointmentId,
+          status: "CONFIRMED",
+          xTENANTID: TENANT_ID
+        }
+      });
+
+      expect(response.status()).toBe(200);
+      const responseBody = await response.json();
+      expect(responseBody).toHaveProperty('message');
+      expect(responseBody.message).toBe('Appointment booked successfully.');
+      
+      logTestResult(testName, 'passed', Date.now() - startTime);
+    } catch (error) {
+      logTestResult(testName, 'failed', Date.now() - startTime, error.message);
+      throw error;
+    }
+  });
+
+  test('7. Check In API', async () => {
+    const startTime = Date.now();
+    const testName = 'Check In API';
+    
+    if (!appointmentId) {
+      logTestResult(testName, 'skipped', Date.now() - startTime, 'No appointment ID available');
+      test.skip();
+      return;
+    }
+    
+    try {
+      console.log(`\n🔄 Testing ${testName}...`);
+      
+      const response = await request.put('/api/master/appointment/update-status', {
+        data: {
+          appointmentId: appointmentId,
+          status: "CHECKED_IN",
+          xTENANTID: TENANT_ID
+        }
+      });
+
+      expect(response.status()).toBe(200);
+      const responseBody = await response.json();
+      expect(responseBody).toHaveProperty('message');
+      
+      logTestResult(testName, 'passed', Date.now() - startTime);
+    } catch (error) {
+      logTestResult(testName, 'failed', Date.now() - startTime, error.message);
+      throw error;
+    }
+  });
+
+  test('8. Get Zoom Token/Start telehealth API', async () => {
+    const startTime = Date.now();
+    const testName = 'Get Zoom Token/Start telehealth API';
+    
+    try {
+      console.log(`\n🔄 Testing ${testName}...`);
+      
+      const meetingId = '2da5497d-6b7d-4fea-a9a4-8a1c374941f2';
+      const response = await request.get(`/api/master/token/${meetingId}`);
+
+      expect(response.status()).toBe(200);
+      const responseBody = await response.json();
+      expect(responseBody).toBeDefined();
+      
+      logTestResult(testName, 'passed', Date.now() - startTime);
+    } catch (error) {
+      logTestResult(testName, 'failed', Date.now() - startTime, error.message);
+      throw error;
+    }
+  });
+
+  test('9. Save Encounter Summary API', async () => {
+    const startTime = Date.now();
+    const testName = 'Save Encounter Summary API';
+    
+    if (!appointmentId) {
+      logTestResult(testName, 'skipped', Date.now() - startTime, 'No appointment ID available');
+      test.skip();
+      return;
+    }
+    
+    try {
+      console.log(`\n🔄 Testing ${testName}...`);
+      
+      const response = await request.post('/api/master/encounter-summary', {
+        data: {
+          encounterStatus: "INTAKE",
+          formType: "SIMPLE_SOAP_NOTE",
+          problems: "",
+          habits: "",
+          patientVitals: [
+            {
+              selected: false,
+              name: "bloodPressure",
+              label: "Blood Pressure",
+              unit: "mmHg"
+            },
+            {
+              selected: false,
+              name: "heartRate",
+              label: "Heart Rate",
+              unit: "BPM"
+            }
+          ],
+          instruction: "",
+          chiefComplaint: testData.chiefComplaint,
+          note: testData.note,
+          tx: "Test treatment plan",
+          appointmentId: appointmentId,
+          patientId: patientId
+        }
+      });
+
+      expect(response.status()).toBe(200);
+      const responseBody = await response.json();
+      
+      if (responseBody.uuid || responseBody.id) {
+        encounterSummaryId = responseBody.uuid || responseBody.id;
+        console.log(`   Encounter summary created with ID: ${encounterSummaryId}`);
+      }
+      
+      logTestResult(testName, 'passed', Date.now() - startTime);
+    } catch (error) {
+      logTestResult(testName, 'failed', Date.now() - startTime, error.message);
+      throw error;
+    }
+  });
+
+  test('10. Update Encounter Summary API', async () => {
+    const startTime = Date.now();
+    const testName = 'Update Encounter Summary API';
+    
+    if (!encounterSummaryId || !appointmentId) {
+      logTestResult(testName, 'skipped', Date.now() - startTime, 'No encounter summary ID available');
+      test.skip();
+      return;
+    }
+    
+    try {
+      console.log(`\n🔄 Testing ${testName}...`);
+      
+      const response = await request.put('/api/master/encounter-summary', {
+        data: {
+          uuid: encounterSummaryId,
+          appointmentId: appointmentId,
+          followUp: null,
+          instruction: "Updated instructions",
+          hpi: null,
+          chiefComplaint: testData.chiefComplaint,
+          problems: "",
+          habits: "",
+          carePlan: null,
+          archive: false,
+          encounterStatus: "EXAM",
+          formType: "SIMPLE_SOAP_NOTE",
+          patientAllergies: null,
+          carePlans: null,
+          familyHistories: null,
+          medicalHistories: null,
+          surgicalHistory: null,
+          patientVitals: [
+            {
+              selected: false,
+              name: "bloodPressure",
+              label: "Blood Pressure",
+              unit: "mmHg"
+            }
+          ],
+          patientMedications: null,
+          patientQuestionAnswers: {},
+          rosTemplates: null,
+          physicalTemplates: null,
+          patientVaccines: null,
+          patientOrders: null,
+          patientId: patientId,
+          providerId: null,
+          providerSignature: null,
+          providerNote: null,
+          tx: "Updated treatment plan",
+          subjectiveFreeNote: null,
+          objectiveFreeNote: null,
+          note: "Updated note",
+          patientPrescriptionForms: null
+        }
+      });
+
+      expect(response.status()).toBe(200);
+      const responseBody = await response.json();
+      expect(responseBody).toBeDefined();
+      
+      logTestResult(testName, 'passed', Date.now() - startTime);
+    } catch (error) {
+      logTestResult(testName, 'failed', Date.now() - startTime, error.message);
+      throw error;
+    }
+  });
+
+  test('11. Encounter SignOff API', async () => {
+    const startTime = Date.now();
+    const testName = 'Encounter SignOff API';
+    
+    if (!encounterSummaryId) {
+      logTestResult(testName, 'skipped', Date.now() - startTime, 'No encounter summary ID available');
+      test.skip();
+      return;
+    }
+    
+    try {
+      console.log(`\n🔄 Testing ${testName}...`);
+      
+      const response = await request.put(`/api/master/encounter-summary/${encounterSummaryId}/encounter-sign-off`, {
+        data: {
+          provider: providerId,
+          providerNote: "Encounter completed successfully",
+          providerSignature: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=="
+        }
+      });
+
+      expect(response.status()).toBe(200);
+      const responseBody = await response.json();
+      expect(responseBody).toBeDefined();
+      
+      logTestResult(testName, 'passed', Date.now() - startTime);
+    } catch (error) {
+      logTestResult(testName, 'failed', Date.now() - startTime, error.message);
+      throw error;
+    }
+  });
 });
+
+// ===== INSTRUCTIONS =====
+/*
+ * HOW TO RUN THIS TEST:
+ * 
+ * 1. Install Playwright:
+ *    npm install -D @playwright/test
+ * 
+ * 2. Run the test:
+ *    npx playwright test ecarehealth-complete-test.js
+ * 
+ * 3. View reports:
+ *    - HTML Report: test-results/ecarehealth-test-report.html
+ *    - JSON Report: test-results/ecarehealth-test-results.json
+ * 
+ * 4. Run with specific options:
+ *    - Headed mode: npx playwright test ecarehealth-complete-test.js --headed
+ *    - Debug mode: npx playwright test ecarehealth-complete-test.js --debug
+ *    - Single worker: npx playwright test ecarehealth-complete-test.js --workers=1
+ * 
+ * CONFIGURATION:
+ * - Base URL: https://stage-api.ecarehealth.com
+ * - Tenant ID: stage_aithinkitive
+ * - Authentication: Pre-configured Bearer token (update AUTH_TOKEN if expired)
+ * - Default Provider ID: dc769997-f9ce-4153-a6f9-bd491ac35228
+ * - Default Patient ID: ac59331f-b6ff-4787-8eeb-a52ff0257861
+ * 
+ * TEST FLOW:
+ * 1. Skip Login (using pre-configured token) → 2. Set Availability → 3. Get Availability 
+ * → 4. Create Appointment → 5. Get Appointments → 6. Confirm → 7. Check In 
+ * → 8. Get Zoom Token → 9. Save Encounter → 10. Update Encounter → 11. Sign Off
+ * 
+ * NOTE: If you see 401 Unauthorized errors, the token may have expired. 
+ * Update the AUTH_TOKEN variable with a fresh token.
+ */
